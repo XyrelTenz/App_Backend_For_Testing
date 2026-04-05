@@ -34,3 +34,6 @@ logs/
 
 # Kotlin metadata
 .kotlin/
+
+# Ruleset
+ruleset.json
