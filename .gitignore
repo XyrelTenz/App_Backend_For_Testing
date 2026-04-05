@@ -6,8 +6,7 @@ bin/
 
 # IDE files
 .idea/
-*.iml
-.eclipse/
+*.iml .eclipse/
 .settings/
 .classpath
 .project
@@ -34,3 +33,7 @@ logs/
 
 # Kotlin metadata
 .kotlin/
+
+
+# Ruleset
+ruleset.json
