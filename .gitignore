@@ -1,0 +1,36 @@
+# Gradle build artifacts
+.gradle/
+build/
+out/
+bin/
+
+# IDE files
+.idea/
+*.iml
+.eclipse/
+.settings/
+.classpath
+.project
+*.class
+
+# Secrets
+.env
+*.pem
+*.key
+firebase-credentials.json
+service-account*.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local DB
+*.db
+*.sqlite
+
+# Kotlin metadata
+.kotlin/

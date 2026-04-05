@@ -1,0 +1,87 @@
+spring:
+  application:
+    name: driving-app-backend
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/drivingapp}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+  websocket:
+    allowed-origins: "*"
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:super-secret-key-change-in-production-min-256-bits}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}   # 24 hours
+
+# Firebase Configuration
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID:driving-app-cc12e}
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+  # Inline credentials (for Docker / cloud deployment)
+  type: ${FIREBASE_TYPE:service_account}
+  private-key-id: ${FIREBASE_PRIVATE_KEY_ID:}
+  private-key: ${FIREBASE_PRIVATE_KEY:}
+  client-email: ${FIREBASE_CLIENT_EMAIL:}
+  client-id: ${FIREBASE_CLIENT_ID:}
+  auth-uri: ${FIREBASE_AUTH_URI:https://accounts.google.com/o/oauth2/auth}
+  token-uri: ${FIREBASE_TOKEN_URI:https://oauth2.googleapis.com/token}
+  auth-provider-cert-url: ${FIREBASE_AUTH_CERT_URL:https://www.googleapis.com/oauth2/v1/certs}
+  client-cert-url: ${FIREBASE_CLIENT_CERT_URL:}
+  universe-domain: ${FIREBASE_UNIVERSE_DOMAIN:googleapis.com}
+
+# Rate Limiting
+rate-limit:
+  capacity: 100
+  refill-duration-seconds: 60
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.xyrel.app: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
