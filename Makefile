@@ -1,6 +1,6 @@
 TEST_CMD = ./gradlew test
 
-.PHONY: test test-auth test-ride test-request test-driver test-chat test-notification run build clean
+.PHONY: test test-auth test-ride test-request test-driver test-chat test-notification run build clean db-up db-down db-restart db-logs
 
 # --- Testing ---
 
@@ -38,3 +38,17 @@ docker-up:
 
 docker-down:
 	docker-compose down
+
+# --- Database ---
+
+db-up:
+	docker-compose up -d postgres
+
+db-down:
+	docker-compose stop postgres
+
+db-restart:
+	docker-compose restart postgres
+
+db-logs:
+	docker-compose logs -f postgres
