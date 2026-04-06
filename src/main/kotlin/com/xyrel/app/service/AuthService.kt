@@ -30,16 +30,10 @@ class AuthService(
 ) {
   private val log = LoggerFactory.getLogger(AuthService::class.java)
 
-  /**
-   * Firebase Signup:
-   * 1. Verify Firebase ID token
-   * 2. Ensure user doesn't already exist
-   * 3. Create user + profile + driver record (if driver role)
-   * 4. Return JWT
-   */
+  // Firebase Sign up
   @Transactional
   fun signup(request: FirebaseSignupRequest): AuthResponse {
-    // Check brute-force block on the raw token prefix (first 20 chars as key)
+    // Check brute-force block on the raw token prefix
     val tokenKey = "signup:${request.idToken.take(20)}"
     bruteForce.checkBlocked(tokenKey)
 
@@ -211,12 +205,7 @@ class AuthService(
     )
   }
 
-  /**
-   * Native Login:
-   * 1. Find user by email
-   * 2. Verify password
-   * 3. Return JWT
-   */
+  // Native Login
   @Transactional(readOnly = true)
   fun loginNative(request: com.xyrel.app.dto.request.NativeLoginRequest): AuthResponse {
     val emailKey = "login:${request.email}"
@@ -254,6 +243,7 @@ class AuthService(
   }
 
   private fun validateDriverFields(request: FirebaseSignupRequest) {
+    // Required Plate Number and License Number for drivers
     if (request.plateNumber.isNullOrBlank())
         throw com.xyrel.app.common.BadRequestException("Plate number is required for drivers")
     if (request.licenseNumber.isNullOrBlank())
@@ -261,6 +251,7 @@ class AuthService(
   }
 
   private fun validateNativeDriverFields(request: com.xyrel.app.dto.request.NativeSignupRequest) {
+    // Required Plate Number and License Number for drivers
     if (request.plateNumber.isNullOrBlank())
         throw com.xyrel.app.common.BadRequestException("Plate number is required for drivers")
     if (request.licenseNumber.isNullOrBlank())
