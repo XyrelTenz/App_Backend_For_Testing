@@ -37,3 +37,7 @@ logs/
 
 # Ruleset
 ruleset.json
+
+
+# Docker
+docker-compose.yml
