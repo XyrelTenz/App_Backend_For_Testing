@@ -3,46 +3,46 @@ package com.xyrel.app.service
 import kotlin.math.*
 import org.springframework.stereotype.Service
 
-/** Fare calculation service — mirrors Go domain/ride.go logic. Base fare: ₱40, per KM rate: ₱20 */
 @Service
 class FareCalculatorService {
-  companion object {
-    const val FARE_PER_KM = 20.0
-    const val MINIMUM_FARE = 40.0
-    const val EARTH_RADIUS_KM = 6371.0
-    const val SPEED_KM_PER_MIN = 1.0 / 3.0 // ~20 km/h → 3 mins per km
+  private val BASE_FARE = 20.0
+  private val PER_KM_RATE = 15.0 // Price per kilometer
+  private val PER_MIN_RATE = 2.0 // Price per minute
+
+  // Calculates the estimated fare based on distance in kilometers.
+  fun calculateFare(distanceKm: Double): Double {
+    val distanceFare = distanceKm * PER_KM_RATE
+    val estimatedTimeMins = estimateDurationMins(distanceKm)
+    val timeFare = estimatedTimeMins * PER_MIN_RATE
+    return BASE_FARE + distanceFare + timeFare
   }
 
-  // Haversine distance in kilometers.
-  fun calculateDistanceKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
-    val dLat = Math.toRadians(lat2 - lat1)
-    val dLng = Math.toRadians(lng2 - lng1)
+  fun estimateDurationMins(distanceKm: Double): Int {
+    // Rough estimate: 2.5 minutes per km in typical traffic
+    return (distanceKm * 2.5).toInt()
+  }
+
+  // Haversine formula to calculate distance between two coordinates in kilometers.
+  fun calculateDistanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val R = 6371.0 // Radius of the earth in km
+    val dLat = deg2rad(lat2 - lat1)
+    val dLon = deg2rad(lon2 - lon1)
     val a =
-        sin(dLat / 2).pow(2) +
-            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLng / 2).pow(2)
+        sin(dLat / 2) * sin(dLat / 2) +
+            cos(deg2rad(lat1)) * cos(deg2rad(lat2)) * sin(dLon / 2) * sin(dLon / 2)
     val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return EARTH_RADIUS_KM * c
+    return R * c
   }
 
-  // Compute fare in PHP. Min ₱40, then ₱20 per km above 2 km.
-  fun calculateFare(distanceKm: Double): Double = maxOf(MINIMUM_FARE, distanceKm * FARE_PER_KM)
+  private fun deg2rad(deg: Double): Double = deg * (Math.PI / 180.0)
 
-  // Estimated travel duration in minutes (simple estimate).
-  fun estimateDurationMins(distanceKm: Double): Int =
-      (distanceKm / SPEED_KM_PER_MIN).toInt().coerceAtLeast(1)
+  fun toWkt(lat: Double, lng: Double): String = "POINT($lng $lat)"
 
-  // Build PostGIS WKT point: longitude first per GeoJSON
-  fun toWkt(lat: Double, lng: Double): String = "SRID=4326;POINT($lng $lat)"
-
-  // Parse lat from WKT "SRID=4326;POINT(lng lat)"
   fun latFromWkt(wkt: String): Double {
-    val coords = wkt.substringAfter("POINT(").substringBefore(")").split(" ")
-    return coords[1].toDouble()
+    return wkt.replace("POINT(", "").replace(")", "").split(" ")[1].toDouble()
   }
 
-  // Parse lng from WKT
   fun lngFromWkt(wkt: String): Double {
-    val coords = wkt.substringAfter("POINT(").substringBefore(")").split(" ")
-    return coords[0].toDouble()
+    return wkt.replace("POINT(", "").replace(")", "").split(" ")[0].toDouble()
   }
 }

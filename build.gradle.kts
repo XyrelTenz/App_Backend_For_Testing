@@ -68,4 +68,23 @@ allOpen {
     annotation("jakarta.persistence.Embeddable")
 }
 
+tasks.withType<org.springframework.boot.gradle.tasks.run.BootRun> {
+    if (file(".env").exists()) {
+        file(".env").readLines().forEach { line ->
+            if (line.contains("=") && !line.startsWith("#")) {
+                val parts = line.split("=", limit = 2)
+                val key = parts[0].trim()
+                var value = parts[1].trim()
+                // Remove surrounding quotes if they exist
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    value = value.substring(1, value.length - 1)
+                } else if (value.startsWith("'") && value.endsWith("'")) {
+                    value = value.substring(1, value.length - 1)
+                }
+                environment(key, value)
+            }
+        }
+    }
+}
+
 tasks.withType<Test> { useJUnitPlatform() }

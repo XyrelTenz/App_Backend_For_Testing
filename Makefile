@@ -25,6 +25,10 @@ test-notification:
 # --- Common ---
 
 run:
+	@echo "Freeing port 8080..."
+	@docker stop drivingapp-backend 2>/dev/null || true
+	@fuser -k 8080/tcp 2>/dev/null || true
+	@sleep 1
 	./gradlew bootRun
 
 build:

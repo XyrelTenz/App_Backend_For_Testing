@@ -13,8 +13,9 @@ class User(
     @Id @Column(name = "id", columnDefinition = "uuid") val id: UUID = UUID.randomUUID(),
     @Column(name = "firebase_uid", unique = true) var firebaseUid: String? = null,
     @Column(name = "password_hash") var passwordHash: String? = null,
-    @Column(name = "email", nullable = false, unique = true) var email: String = "",
-    @Column(name = "phone", unique = true) var phone: String? = null,
+    @Column(name = "email", nullable = false, unique = true, columnDefinition = "citext")
+    var email: String = "",
+    @Column(name = "phone", unique = true, columnDefinition = "citext") var phone: String? = null,
     @Column(name = "full_name", nullable = false) var fullName: String = "",
     @Enumerated(EnumType.STRING)
     @Column(name = "role", columnDefinition = "user_role")

@@ -59,22 +59,25 @@ class FirebaseTokenVerifier(
   }
 
   private fun buildServiceAccountJson(): String {
-    val escapedPrivateKey = privateKey.replace("\\n", "\n")
+    val normalizedKey = privateKey.replace("\\n", "\n").replace("\r", "").trim().trim('"')
+
+    val jsonEscapedKey = normalizedKey.replace("\n", "\\n")
+
     return """
-            {
-              "type": "$type",
-              "project_id": "$projectId",
-              "private_key_id": "$privateKeyId",
-              "private_key": "${escapedPrivateKey.replace("\n", "\\n")}",
-              "client_email": "$clientEmail",
-              "client_id": "$clientId",
-              "auth_uri": "$authUri",
-              "token_uri": "$tokenUri",
-              "auth_provider_x509_cert_url": "$authProviderCertUrl",
-              "client_x509_cert_url": "$clientCertUrl",
-              "universe_domain": "$universeDomain"
-            }
-        """
+        {
+          "type": "$type",
+          "project_id": "$projectId",
+          "private_key_id": "$privateKeyId",
+          "private_key": "$jsonEscapedKey",
+          "client_email": "$clientEmail",
+          "client_id": "$clientId",
+          "auth_uri": "$authUri",
+          "token_uri": "$tokenUri",
+          "auth_provider_x509_cert_url": "$authProviderCertUrl",
+          "client_x509_cert_url": "$clientCertUrl",
+          "universe_domain": "$universeDomain"
+        }
+    """
         .trimIndent()
   }
 }

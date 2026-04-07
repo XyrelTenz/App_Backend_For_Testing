@@ -14,6 +14,7 @@ import com.xyrel.app.repository.UserFcmTokenRepository
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -24,6 +25,7 @@ class RideService(
     private val fareCalculator: FareCalculatorService,
     private val pushNotificationService: PushNotificationService,
     private val fcmTokenRepository: UserFcmTokenRepository,
+    private val messagingTemplate: SimpMessagingTemplate,
 ) {
   // Passenger requests a new ride.
   @Transactional
@@ -137,6 +139,8 @@ class RideService(
           else -> "Your ride status was updated to ${status.value}"
         }
     notifyUser(ride.passengerId, title, body)
+    // Real-time broadcast for subscribers
+    messagingTemplate.convertAndSend("/topic/ride/${rideId}", ride.toResponse(fareCalculator))
   }
 
   // Get nearby searching rides for a driver.
