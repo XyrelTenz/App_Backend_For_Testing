@@ -6,6 +6,8 @@ import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 
 /**
  * Ride entity mapped to the partitioned `rides` table. The composite PK (id, created_at) is
@@ -36,9 +38,11 @@ class Ride(
     @Column(name = "payment_method", nullable = false) var paymentMethod: String = "cash",
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", columnDefinition = "payment_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     var paymentStatus: PaymentStatus = PaymentStatus.PENDING,
     @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "ride_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     var status: RideStatus = RideStatus.SEARCHING,
     @Column(name = "scheduled_at") var scheduledAt: Instant? = null,
     @Column(name = "started_at") var startedAt: Instant? = null,

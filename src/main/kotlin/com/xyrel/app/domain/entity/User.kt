@@ -4,7 +4,9 @@ import com.xyrel.app.domain.enums.UserRole
 import jakarta.persistence.*
 import java.time.Instant
 import java.util.UUID
+import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.annotations.SQLRestriction
+import org.hibernate.type.SqlTypes
 
 @Entity
 @Table(name = "users")
@@ -19,6 +21,7 @@ class User(
     @Column(name = "full_name", nullable = false) var fullName: String = "",
     @Enumerated(EnumType.STRING)
     @Column(name = "role", columnDefinition = "user_role")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     var role: UserRole = UserRole.NONE,
     @Column(name = "is_active") var isActive: Boolean = true,
     @Column(name = "deleted_at") var deletedAt: Instant? = null,
