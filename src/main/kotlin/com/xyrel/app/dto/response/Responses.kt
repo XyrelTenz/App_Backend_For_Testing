@@ -1,5 +1,6 @@
 package com.xyrel.app.dto.response
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -16,7 +17,8 @@ data class UserResponse(
     val id: UUID,
     val email: String,
     val phone: String?,
-    val fullName: String,
+    // TODO: Remove JsonProperty and use camelCase consistently across the app
+    @param:JsonProperty("full_name") val fullName: String,
     val role: String,
     val isActive: Boolean,
     val profileImageUrl: String?,

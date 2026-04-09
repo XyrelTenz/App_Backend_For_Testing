@@ -38,11 +38,26 @@ class FareCalculatorService {
 
   fun toWkt(lat: Double, lng: Double): String = "POINT($lng $lat)"
 
-  fun latFromWkt(wkt: String): Double {
-    return wkt.replace("POINT(", "").replace(")", "").split(" ")[1].toDouble()
+  fun latFromWkt(locationStr: String): Double {
+    if (locationStr.startsWith("POINT(")) {
+      return locationStr.replace("POINT(", "").replace(")", "").split(" ")[1].toDouble()
+    }
+    return decodeHexEwkb(locationStr, isLat = true)
   }
 
-  fun lngFromWkt(wkt: String): Double {
-    return wkt.replace("POINT(", "").replace(")", "").split(" ")[0].toDouble()
+  fun lngFromWkt(locationStr: String): Double {
+    if (locationStr.startsWith("POINT(")) {
+      return locationStr.replace("POINT(", "").replace(")", "").split(" ")[0].toDouble()
+    }
+    return decodeHexEwkb(locationStr, isLat = false)
+  }
+
+  private fun decodeHexEwkb(hex: String, isLat: Boolean): Double {
+    if (hex.length < 50) return 0.0
+    val xHex = hex.substring(18, 34)
+    val yHex = hex.substring(34, 50)
+    val targetHex = if (isLat) yHex else xHex
+    val reversedHex = targetHex.chunked(2).reversed().joinToString("")
+    return Double.fromBits(reversedHex.toULong(16).toLong())
   }
 }

@@ -33,7 +33,6 @@ class AuthService(
   // Firebase Sign up
   @Transactional
   fun signup(request: FirebaseSignupRequest): AuthResponse {
-    // Check brute-force block on the raw token prefix
     val tokenKey = "signup:${request.idToken.take(20)}"
     bruteForce.checkBlocked(tokenKey)
 
@@ -44,17 +43,43 @@ class AuthService(
           bruteForce.recordFailure(tokenKey)
           throw e
         }
+
     val firebaseUid = firebaseToken.uid
     val email =
         firebaseToken.email ?: throw UnauthorizedException("Firebase token does not contain email")
 
-    if (userRepository.existsByFirebaseUid(firebaseUid)) {
-      throw ConflictException("User already registered. Please use login instead.")
+    val user =
+        handleExistingFirebaseUser(firebaseUid, email)
+            ?: createNewFirebaseUser(request, firebaseUid, email)
+
+    return generateAuthResponse(user)
+  }
+
+  private fun handleExistingFirebaseUser(firebaseUid: String, email: String): User? {
+    val existingUser =
+        userRepository
+            .findByFirebaseUid(firebaseUid)
+            .or { userRepository.findByEmail(email) }
+            .orElse(null) ?: return null
+
+    if (existingUser.firebaseUid != null && existingUser.firebaseUid != firebaseUid) {
+      throw ConflictException("Email already associated with another account.")
     }
 
-    val role = UserRole.fromValue(request.role)
+    if (existingUser.firebaseUid == null) {
+      existingUser.firebaseUid = firebaseUid
+      userRepository.save(existingUser)
+      log.info("Linked Google account to existing user: ${existingUser.email}")
+    }
+    return existingUser
+  }
 
-    // Create User
+  private fun createNewFirebaseUser(
+      request: FirebaseSignupRequest,
+      firebaseUid: String,
+      email: String,
+  ): User {
+    val role = UserRole.fromValue(request.role)
     val user =
         User(
             firebaseUid = firebaseUid,
@@ -63,45 +88,33 @@ class AuthService(
             fullName = request.fullName,
             role = role,
         )
-    val savedUser = userRepository.save(user)
+    user.profile = UserProfile(userId = user.id, user = user)
 
-    // Create Profile
-    val profile = UserProfile(userId = savedUser.id, user = savedUser)
-    userProfileRepository.save(profile)
-
-    // Create Driver record if registering as driver
     if (role == UserRole.DRIVER) {
-      validateDriverFields(request)
-      val driver =
+      val plateNumber =
+          request.plateNumber
+              ?: throw com.xyrel.app.common.BadRequestException("Plate number required")
+      val licenseNumber =
+          request.licenseNumber
+              ?: throw com.xyrel.app.common.BadRequestException("License number required")
+
+      user.driver =
           Driver(
-              userId = savedUser.id,
-              user = savedUser,
-              plateNumber = request.plateNumber!!,
+              userId = user.id,
+              user = user,
+              plateNumber = plateNumber,
               vehicleType = request.vehicleType ?: "baobao_etrike",
               vehicleColor = request.vehicleColor,
-              licenseNumber = request.licenseNumber!!,
+              licenseNumber = licenseNumber,
           )
-      driverRepository.save(driver)
     }
 
-    val token = jwtService.generateToken(savedUser.id.toString(), role.name)
+    val savedUser = userRepository.save(user)
     log.info("New user registered: ${savedUser.email} as ${role.name}")
-
-    return AuthResponse(
-        token = token,
-        userId = savedUser.id.toString(),
-        role = role.name,
-        fullName = savedUser.fullName,
-        email = savedUser.email,
-    )
+    return savedUser
   }
 
-  /**
-   * Firebase Login:
-   * 1. Verify Firebase ID token
-   * 2. Find existing user by firebase_uid
-   * 3. Return new JWT
-   */
+  // Firebase Login
   @Transactional(readOnly = true)
   fun login(request: FirebaseLoginRequest): AuthResponse {
     // Rate-limit login attempts by token prefix
@@ -133,26 +146,12 @@ class AuthService(
 
     // Successful login — clear any failure record
     bruteForce.recordSuccess(tokenKey)
-
-    val token = jwtService.generateToken(user.id.toString(), user.role.name)
     log.info("User logged in: ${user.email}")
 
-    return AuthResponse(
-        token = token,
-        userId = user.id.toString(),
-        role = user.role.name,
-        fullName = user.fullName,
-        email = user.email,
-    )
+    return generateAuthResponse(user)
   }
 
-  /**
-   * Native Signup:
-   * 1. Check if user exists by email
-   * 2. Hash password
-   * 3. Create user + profile + driver record
-   * 4. Return JWT
-   */
+  // Native Sign up
   @Transactional
   fun signupNative(request: com.xyrel.app.dto.request.NativeSignupRequest): AuthResponse {
     val emailKey = "signup:${request.email}"
@@ -163,7 +162,6 @@ class AuthService(
     }
 
     val role = UserRole.fromValue(request.role)
-
     val user =
         User(
             email = request.email,
@@ -172,37 +170,31 @@ class AuthService(
             fullName = request.fullName,
             role = role,
         )
-    val savedUser = userRepository.save(user)
+    user.profile = UserProfile(userId = user.id, user = user)
 
-    // Create Profile
-    val profile = UserProfile(userId = savedUser.id, user = savedUser)
-    userProfileRepository.save(profile)
-
-    // Create Driver record if registering as driver
     if (role == UserRole.DRIVER) {
-      validateNativeDriverFields(request)
-      val driver =
+      val plateNumber =
+          request.plateNumber
+              ?: throw com.xyrel.app.common.BadRequestException("Plate number required")
+      val licenseNumber =
+          request.licenseNumber
+              ?: throw com.xyrel.app.common.BadRequestException("License number required")
+
+      user.driver =
           Driver(
-              userId = savedUser.id,
-              user = savedUser,
-              plateNumber = request.plateNumber!!,
+              userId = user.id,
+              user = user,
+              plateNumber = plateNumber,
               vehicleType = request.vehicleType ?: "baobao_etrike",
               vehicleColor = request.vehicleColor,
-              licenseNumber = request.licenseNumber!!,
+              licenseNumber = licenseNumber,
           )
-      driverRepository.save(driver)
     }
 
-    val token = jwtService.generateToken(savedUser.id.toString(), role.name)
+    val savedUser = userRepository.save(user)
     log.info("New native user registered: ${savedUser.email} as ${role.name}")
 
-    return AuthResponse(
-        token = token,
-        userId = savedUser.id.toString(),
-        role = role.name,
-        fullName = savedUser.fullName,
-        email = savedUser.email,
-    )
+    return generateAuthResponse(savedUser)
   }
 
   // Native Login
@@ -229,10 +221,13 @@ class AuthService(
     }
 
     bruteForce.recordSuccess(emailKey)
-
-    val token = jwtService.generateToken(user.id.toString(), user.role.name)
     log.info("Native user logged in: ${user.email}")
 
+    return generateAuthResponse(user)
+  }
+
+  private fun generateAuthResponse(user: User): AuthResponse {
+    val token = jwtService.generateToken(user.id.toString(), user.role.name)
     return AuthResponse(
         token = token,
         userId = user.id.toString(),
@@ -240,21 +235,5 @@ class AuthService(
         fullName = user.fullName,
         email = user.email,
     )
-  }
-
-  private fun validateDriverFields(request: FirebaseSignupRequest) {
-    // Required Plate Number and License Number for drivers
-    if (request.plateNumber.isNullOrBlank())
-        throw com.xyrel.app.common.BadRequestException("Plate number is required for drivers")
-    if (request.licenseNumber.isNullOrBlank())
-        throw com.xyrel.app.common.BadRequestException("License number is required for drivers")
-  }
-
-  private fun validateNativeDriverFields(request: com.xyrel.app.dto.request.NativeSignupRequest) {
-    // Required Plate Number and License Number for drivers
-    if (request.plateNumber.isNullOrBlank())
-        throw com.xyrel.app.common.BadRequestException("Plate number is required for drivers")
-    if (request.licenseNumber.isNullOrBlank())
-        throw com.xyrel.app.common.BadRequestException("License number is required for drivers")
   }
 }

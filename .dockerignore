@@ -41,3 +41,6 @@ ruleset.json
 
 # Docker
 docker-compose.yml
+
+
+*.txt

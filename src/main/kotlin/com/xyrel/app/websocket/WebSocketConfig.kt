@@ -19,6 +19,6 @@ class WebSocketConfig(
   }
 
   override fun registerStompEndpoints(registry: StompEndpointRegistry) {
-    registry.addEndpoint("/ws").setAllowedOriginPatterns(allowedOrigins).withSockJS()
+    registry.addEndpoint("/ws").setAllowedOriginPatterns(allowedOrigins)
   }
 }

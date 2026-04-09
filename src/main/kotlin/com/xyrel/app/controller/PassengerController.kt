@@ -31,6 +31,16 @@ class PassengerController(
     return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(ride))
   }
 
+  // Passenger cancels a ride
+  @PostMapping("/ride/{id}/cancel")
+  fun cancelRide(
+      principal: Principal,
+      @PathVariable id: UUID
+  ): ResponseEntity<ApiResponse<*>> {
+    rideService.cancelRideByPassenger(id, UUID.fromString(principal.name))
+    return ResponseEntity.ok(ApiResponse.success(mapOf("message" to "Ride cancelled successfully")))
+  }
+
   // Gget single ride by ID
   @GetMapping("/ride/{id}")
   fun getRide(@PathVariable id: UUID): ResponseEntity<ApiResponse<*>> {

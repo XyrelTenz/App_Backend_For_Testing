@@ -143,6 +143,34 @@ class RideService(
     messagingTemplate.convertAndSend("/topic/ride/${rideId}", ride.toResponse(fareCalculator))
   }
 
+  // Cancel rides
+  fun cancelRideByPassenger(rideId: UUID, passengerId: UUID) {
+    val ride =
+        rideRepository.findByRideId(rideId) ?: throw NotFoundException("Ride not found: $rideId")
+
+    if (ride.passengerId != passengerId) {
+      throw ForbiddenException("You are not the passenger of this ride")
+    }
+
+    if (ride.status == RideStatus.COMPLETED || ride.status == RideStatus.CANCELLED) {
+      throw BadRequestException("Cannot cancel a ride that is already ${ride.status.value}")
+    }
+
+    ride.status = RideStatus.CANCELLED
+    ride.cancelledAt = Instant.now()
+    ride.cancelReason = "Cancelled by passenger"
+    ride.updatedAt = Instant.now()
+
+    rideRepository.save(ride)
+
+    // Notify driver if assigned
+    ride.driverId?.let { driverId ->
+      notifyUser(driverId, "Ride Cancelled", "The passenger has cancelled the ride.")
+    }
+
+    messagingTemplate.convertAndSend("/topic/ride/${rideId}", ride.toResponse(fareCalculator))
+  }
+
   // Get nearby searching rides for a driver.
   @Transactional(readOnly = true)
   fun getNearbyRides(
