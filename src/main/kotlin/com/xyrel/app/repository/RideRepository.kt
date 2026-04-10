@@ -18,6 +18,8 @@ interface RideRepository : JpaRepository<Ride, RideId> {
 
   fun findByStatus(status: RideStatus): List<Ride>
 
+  fun findByPassengerIdAndStatusIn(passengerId: UUID, statuses: List<RideStatus>): List<Ride>
+
   @Query("SELECT r FROM Ride r WHERE r.passengerId = :passengerId ORDER BY r.rideId.createdAt DESC")
   fun findPassengerHistory(passengerId: UUID): List<Ride>
 
@@ -45,12 +47,43 @@ interface RideRepository : JpaRepository<Ride, RideId> {
   )
   fun acceptRide(id: UUID, driverId: UUID, status: RideStatus): Int
 
+  @Modifying
+  @Query(
+      value =
+          """
+            INSERT INTO rides (
+                id, created_at, passenger_id, pickup_address, pickup_location, 
+                dropoff_address, dropoff_location, distance_km, estimated_duration_mins, 
+                estimated_fare_amount, payment_method, status, updated_at
+            ) VALUES (
+                :id, :createdAt, :passengerId, :pickupAddress, ST_GeogFromText(:pickupLocation), 
+                :dropoffAddress, ST_GeogFromText(:dropoffLocation), :distanceKm, :estimatedDurationMins, 
+                :estimatedFareAmount, :paymentMethod, :status, CURRENT_TIMESTAMP
+            )
+        """,
+      nativeQuery = true,
+  )
+  fun nativeInsert(
+      id: UUID,
+      createdAt: java.time.Instant,
+      passengerId: UUID,
+      pickupAddress: String,
+      pickupLocation: String,
+      dropoffAddress: String,
+      dropoffLocation: String,
+      distanceKm: java.math.BigDecimal,
+      estimatedDurationMins: Int,
+      estimatedFareAmount: java.math.BigDecimal,
+      paymentMethod: String,
+      status: String,
+  )
+
   // Find searching rides near a given point within radiusMeters.
   @Query(
       value =
           """
             SELECT r.* FROM rides r
-            WHERE r.status = 'searching'
+            WHERE r.status = 'SEARCHING'
               AND ST_DWithin(
                     r.pickup_location,
                     ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,

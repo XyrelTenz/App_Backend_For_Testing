@@ -37,12 +37,12 @@ class Ride(
     var finalFareAmount: BigDecimal? = null,
     @Column(name = "payment_method", nullable = false) var paymentMethod: String = "cash",
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", columnDefinition = "payment_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "payment_status", columnDefinition = "payment_status")
     var paymentStatus: PaymentStatus = PaymentStatus.PENDING,
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", columnDefinition = "ride_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", columnDefinition = "ride_status")
     var status: RideStatus = RideStatus.SEARCHING,
     @Column(name = "scheduled_at") var scheduledAt: Instant? = null,
     @Column(name = "started_at") var startedAt: Instant? = null,
@@ -53,7 +53,9 @@ class Ride(
 )
 
 @Embeddable
-class RideId(
-    @Column(name = "id", columnDefinition = "uuid") val id: UUID = UUID.randomUUID(),
-    @Column(name = "created_at") val createdAt: Instant = Instant.now(),
-) : java.io.Serializable
+data class RideId(
+    @Column(name = "id", columnDefinition = "uuid") val id: java.util.UUID = java.util.UUID.randomUUID(),
+    @Column(name = "created_at") val createdAt: java.time.Instant = java.time.Instant.now(),
+) : java.io.Serializable {
+    constructor() : this(java.util.UUID.randomUUID(), java.time.Instant.now())
+}
